@@ -1,7 +1,5 @@
 package com.appretodos.ui.historial
 
-
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.appretodos.data.AppContainer

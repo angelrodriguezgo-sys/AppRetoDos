@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -21,23 +22,42 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.appretodos.data.model.Rol
+import com.appretodos.ui.auditoria.AuditoriaScreen
 import com.appretodos.ui.billetera.BilleteraScreen
 import com.appretodos.ui.divisas.DivisasScreen
 import com.appretodos.ui.historial.HistorialScreen
 import com.appretodos.ui.perfil.PerfilScreen
+import com.appretodos.ui.perfil.PerfilViewModel
 
-private data class Seccion(val titulo: String, val icono: ImageVector)
+private enum class Destino { HOME, MONEDAS, HISTORIAL, AUDITORIA, PERFIL }
 
-private val secciones = listOf(
-    Seccion("Home", Icons.Default.Home),
-    Seccion("Monedas", Icons.Default.ShoppingCart),
-    Seccion("Historial", Icons.AutoMirrored.Filled.List),
-    Seccion("Perfil", Icons.Default.Person)
+private data class Seccion(val titulo: String, val icono: ImageVector, val destino: Destino)
+
+private val seccionesUsuario = listOf(
+    Seccion("Home", Icons.Default.Home, Destino.HOME),
+    Seccion("Monedas", Icons.Default.ShoppingCart, Destino.MONEDAS),
+    Seccion("Historial", Icons.AutoMirrored.Filled.List, Destino.HISTORIAL),
+    Seccion("Perfil", Icons.Default.Person, Destino.PERFIL)
+)
+
+private val seccionesAdmin = listOf(
+    Seccion("Home", Icons.Default.Home, Destino.HOME),
+    Seccion("Auditoría", Icons.Default.CheckCircle, Destino.AUDITORIA),
+    Seccion("Perfil", Icons.Default.Person, Destino.PERFIL)
 )
 
 @Composable
-fun MainScreen(onCerrarSesion: () -> Unit) {
+fun MainScreen(
+    onCerrarSesion: () -> Unit,
+    perfilViewModel: PerfilViewModel = viewModel()
+) {
+    val usuario by perfilViewModel.usuario.collectAsStateWithLifecycle()
+    val secciones = if (usuario?.rol == Rol.ADMIN) seccionesAdmin else seccionesUsuario
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val destino = secciones.getOrNull(tab)?.destino ?: Destino.HOME
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -60,11 +80,12 @@ fun MainScreen(onCerrarSesion: () -> Unit) {
         }
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            when (tab) {
-                0 -> DivisasScreen()
-                1 -> BilleteraScreen()
-                2 -> HistorialScreen()
-                else -> PerfilScreen(onCerrarSesion = onCerrarSesion)
+            when (destino) {
+                Destino.HOME -> DivisasScreen()
+                Destino.MONEDAS -> BilleteraScreen()
+                Destino.HISTORIAL -> HistorialScreen()
+                Destino.AUDITORIA -> AuditoriaScreen()
+                Destino.PERFIL -> PerfilScreen(onCerrarSesion = onCerrarSesion)
             }
         }
     }

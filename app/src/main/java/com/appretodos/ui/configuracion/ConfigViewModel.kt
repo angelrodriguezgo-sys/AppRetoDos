@@ -33,7 +33,9 @@ class ConfigViewModel(
         ConfigUiState(monedaLocal = local, idioma = usuario?.idioma ?: "Español")
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConfigUiState())
 
-    fun onMonedaLocal(codigo: String) = repoMonedas.cambiarMonedaLocal(codigo)
+    fun onMonedaLocal(codigo: String) {
+        viewModelScope.launch { sesion.cambiarMonedaRecepcion(codigo) }
+    }
 
     fun onIdioma(idioma: String) {
         viewModelScope.launch { sesion.cambiarIdioma(idioma) }

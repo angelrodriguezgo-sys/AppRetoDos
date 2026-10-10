@@ -1,11 +1,10 @@
 package com.appretodos.ui.billetera
 
-
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.appretodos.data.AppContainer
 import com.appretodos.data.model.Moneda
+import com.appretodos.data.model.Reglas
 import com.appretodos.data.model.TipoOperacion
 import com.appretodos.data.repository.BilleteraRepository
 import com.appretodos.data.repository.MonedasRepository
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class TenenciaUi(val moneda: Moneda, val cantidad: Double, val valorLocal: Double)
 
@@ -29,7 +29,9 @@ data class DialogoUi(
     val tipo: TipoOperacion,
     val codigo: String,
     val cantidad: String = "",
-    val error: String? = null
+    val sobreprecio: String = "",
+    val error: String? = null,
+    val procesando: Boolean = false
 )
 
 class BilleteraViewModel(
@@ -61,6 +63,10 @@ class BilleteraViewModel(
     private val _dialogo = MutableStateFlow<DialogoUi?>(null)
     val dialogo: StateFlow<DialogoUi?> = _dialogo.asStateFlow()
 
+    /** Precio de mercado de 1 unidad de [codigo] en la moneda del usuario. */
+    fun tasaMercado(codigo: String): Double =
+        repoMonedas.valorEnLocal(codigo, repoMonedas.monedaLocal.value)
+
     fun abrirDialogo(tipo: TipoOperacion, codigo: String) {
         _dialogo.value = DialogoUi(tipo, codigo)
     }
@@ -76,22 +82,44 @@ class BilleteraViewModel(
         _dialogo.update { it?.copy(cantidad = limpio, error = null) }
     }
 
+    fun onSobreprecio(texto: String) {
+        val limpio = texto.filter { it.isDigit() || it == '.' || it == ',' }
+        _dialogo.update { it?.copy(sobreprecio = limpio, error = null) }
+    }
+
     fun confirmar() {
         val d = _dialogo.value ?: return
+        if (d.procesando) return
+
         val cantidad = d.cantidad.replace(',', '.').toDoubleOrNull()
         if (cantidad == null || cantidad <= 0.0) {
             _dialogo.update { it?.copy(error = "Escribe una cantidad válida") }
             return
         }
-        val error = if (d.tipo == TipoOperacion.COMPRA) {
-            repoBilletera.comprar(d.codigo, cantidad)
+        val pct = if (d.tipo == TipoOperacion.VENTA) {
+            d.sobreprecio.replace(',', '.').toDoubleOrNull() ?: 0.0
         } else {
-            repoBilletera.vender(d.codigo, cantidad)
+            0.0
         }
-        if (error == null) {
-            _dialogo.value = null
-        } else {
-            _dialogo.update { it?.copy(error = error) }
+        if (pct < 0.0 || pct > Reglas.LIMITE_SOBREPRECIO_PCT) {
+            _dialogo.update {
+                it?.copy(error = "El sobreprecio debe estar entre 0 y ${Reglas.LIMITE_SOBREPRECIO_PCT} %")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _dialogo.update { it?.copy(procesando = true, error = null) }
+            val error = if (d.tipo == TipoOperacion.COMPRA) {
+                repoBilletera.comprar(d.codigo, cantidad)
+            } else {
+                repoBilletera.vender(d.codigo, cantidad, pct)
+            }
+            if (error == null) {
+                _dialogo.value = null
+            } else {
+                _dialogo.update { it?.copy(procesando = false, error = error) }
+            }
         }
     }
 }

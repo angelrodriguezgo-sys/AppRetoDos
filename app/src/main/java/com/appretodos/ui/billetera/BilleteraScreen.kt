@@ -1,7 +1,5 @@
 package com.appretodos.ui.billetera
 
-
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +32,7 @@ import com.appretodos.data.model.Moneda
 import com.appretodos.data.model.TipoOperacion
 import com.appretodos.ui.components.Selector
 import com.appretodos.util.aTexto
+import com.appretodos.util.aTextoCambio
 
 @Composable
 fun BilleteraScreen(viewModel: BilleteraViewModel = viewModel()) {
@@ -123,8 +122,11 @@ fun BilleteraScreen(viewModel: BilleteraViewModel = viewModel()) {
         DialogoOperacion(
             d = d,
             monedas = viewModel.monedas,
+            local = s.monedaLocal,
+            tasaMercado = viewModel.tasaMercado(d.codigo),
             onCodigo = viewModel::onCodigo,
             onCantidad = viewModel::onCantidad,
+            onSobreprecio = viewModel::onSobreprecio,
             onConfirmar = viewModel::confirmar,
             onCerrar = viewModel::cerrarDialogo
         )
@@ -135,19 +137,25 @@ fun BilleteraScreen(viewModel: BilleteraViewModel = viewModel()) {
 private fun DialogoOperacion(
     d: DialogoUi,
     monedas: List<Moneda>,
+    local: String,
+    tasaMercado: Double,
     onCodigo: (String) -> Unit,
     onCantidad: (String) -> Unit,
+    onSobreprecio: (String) -> Unit,
     onConfirmar: () -> Unit,
     onCerrar: () -> Unit
 ) {
+    val esVenta = d.tipo == TipoOperacion.VENTA
+    val cantidad = d.cantidad.replace(',', '.').toDoubleOrNull() ?: 0.0
+    val pct = if (esVenta) d.sobreprecio.replace(',', '.').toDoubleOrNull() ?: 0.0 else 0.0
+    val precio = tasaMercado * (1.0 + pct / 100.0)
+
     AlertDialog(
         onDismissRequest = onCerrar,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = {
-            Text(if (d.tipo == TipoOperacion.COMPRA) "Comprar divisa" else "Vender divisa")
-        },
+        title = { Text(if (esVenta) "Vender divisa" else "Comprar divisa") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Selector(
                     textoBoton = d.codigo,
                     opciones = monedas.map { it.codigo to "${it.codigo} - ${it.nombre}" },
@@ -160,10 +168,39 @@ private fun DialogoOperacion(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
+                if (esVenta) {
+                    OutlinedTextField(
+                        value = d.sobreprecio,
+                        onValueChange = onSobreprecio,
+                        label = { Text("Sobreprecio % (0 a 2.5)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                }
+                Text(
+                    "Precio de mercado: ${tasaMercado.aTextoCambio()} $local",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (esVenta) {
+                    Text(
+                        "Tu precio: ${precio.aTextoCambio()} $local",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    "${if (esVenta) "Recibes" else "Pagas"}: ${(cantidad * precio).aTexto()} $local",
+                    fontWeight = FontWeight.Bold
+                )
                 d.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
-        confirmButton = { Button(onClick = onConfirmar) { Text("Confirmar") } },
+        confirmButton = {
+            Button(onClick = onConfirmar, enabled = !d.procesando) {
+                Text(if (d.procesando) "Procesando..." else "Confirmar")
+            }
+        },
         dismissButton = { TextButton(onClick = onCerrar) { Text("Cancelar") } }
     )
 }

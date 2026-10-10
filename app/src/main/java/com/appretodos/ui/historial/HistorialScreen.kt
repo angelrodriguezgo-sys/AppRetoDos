@@ -79,6 +79,13 @@ private fun FilaTransaccion(t: Transaccion) {
                     else MaterialTheme.colorScheme.secondary
                 )
                 Text("${t.cantidad.aTexto()} ${t.codigoMoneda}")
+                if (t.desviacionPct > 0.005) {
+                    Text(
+                        "Sobreprecio: +${t.desviacionPct.aTexto()} %",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Text(
                     "${t.fechaMillis.aFecha()} · ${t.fechaMillis.aHora()}",
                     style = MaterialTheme.typography.bodySmall,
