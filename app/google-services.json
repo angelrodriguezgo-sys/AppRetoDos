@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "915846556332",
+    "project_id": "appretodos",
+    "storage_bucket": "appretodos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915846556332:android:3728047bc612db53abcd09",
+        "android_client_info": {
+          "package_name": "com.appretodos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASSXy1-FRhV4BBiI5QZ2nNKZ0FH3g2Gzg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
