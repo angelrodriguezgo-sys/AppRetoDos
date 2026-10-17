@@ -33,11 +33,21 @@ import com.appretodos.data.model.TipoOperacion
 import com.appretodos.ui.components.Selector
 import com.appretodos.util.aTexto
 import com.appretodos.util.aTextoCambio
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.appretodos.util.vibrar
 
 @Composable
 fun BilleteraScreen(viewModel: BilleteraViewModel = viewModel()) {
     val s by viewModel.uiState.collectAsStateWithLifecycle()
     val dialogo by viewModel.dialogo.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        context.vibrar()   // PRUEBA TEMPORAL: debe vibrar al abrir la pestaña Monedas
+        viewModel.operacionExitosa.collect { context.vibrar() }
+    }
+
 
     Column(
         modifier = Modifier

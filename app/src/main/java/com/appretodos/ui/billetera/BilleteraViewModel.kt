@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 data class TenenciaUi(val moneda: Moneda, val cantidad: Double, val valorLocal: Double)
 
@@ -62,6 +64,8 @@ class BilleteraViewModel(
 
     private val _dialogo = MutableStateFlow<DialogoUi?>(null)
     val dialogo: StateFlow<DialogoUi?> = _dialogo.asStateFlow()
+    private val _operacionExitosa = Channel<Unit>(Channel.BUFFERED)
+    val operacionExitosa = _operacionExitosa.receiveAsFlow()
 
     /** Precio de mercado de 1 unidad de [codigo] en la moneda del usuario. */
     fun tasaMercado(codigo: String): Double =
@@ -117,6 +121,7 @@ class BilleteraViewModel(
             }
             if (error == null) {
                 _dialogo.value = null
+                _operacionExitosa.trySend(Unit)
             } else {
                 _dialogo.update { it?.copy(procesando = false, error = error) }
             }

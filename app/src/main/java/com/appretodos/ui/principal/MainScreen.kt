@@ -31,6 +31,7 @@ import com.appretodos.ui.divisas.DivisasScreen
 import com.appretodos.ui.historial.HistorialScreen
 import com.appretodos.ui.perfil.PerfilScreen
 import com.appretodos.ui.perfil.PerfilViewModel
+import com.appretodos.ui.components.BotonFoto
 
 private enum class Destino { HOME, MONEDAS, HISTORIAL, AUDITORIA, PERFIL }
 
@@ -61,6 +62,7 @@ fun MainScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = { BotonFoto() },   // <-- línea añadida
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
                 secciones.forEachIndexed { indice, seccion ->
